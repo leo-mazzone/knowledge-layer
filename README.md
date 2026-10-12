@@ -1,4 +1,4 @@
-# Shared knowledge for LibreChat
+# Shared knowledge layer for AI systems
 
 Python document ingestion and retrieval service backed by PostgreSQL + pgvector. One MCP server exposes `search_knowledge` and `read_document`.
 
@@ -75,27 +75,6 @@ Model input preparation is implemented separately from HTTP transport. Applicati
 
 Postgres data persists in the `knowledge-db` volume. Service ports are published on loopback, and the MCP server accepts the Docker Desktop host name used below. The development database credentials are `knowledge` / `knowledge`.
 
-## Connect LibreChat
-
-Merge [librechat.yaml](librechat.yaml) into your existing LibreChat configuration. Preserve existing server and address entries. The snippet defines the shared knowledge server and its allowed address, `host.docker.internal:8091`.
-
-After merging the config:
-
-```sh
-cd /Users/leo-mazzone/Documents/code/LibreChat
-docker compose up -d --no-deps --force-recreate api
-```
-
-Enable both shared-knowledge tools in the chat or agent tool configuration. For your default agent, add the instructions in `knowledge/agent.md` and select that agent for conversations that should consult the knowledge layer. Add relevant source-specific instructions from the connector documentation. The collection is shared across chats; tool availability and whether the model calls a tool are controlled by LibreChat's chat/agent configuration.
-
-To check connectivity from inside LibreChat:
-
-```sh
-docker compose exec api node -e 'fetch("http://host.docker.internal:8091/health").then(async r => { console.log(r.status, await r.text()); process.exit(r.ok ? 0 : 1); }).catch(e => { console.error(e.message); process.exit(1); })'
-```
-
-The supplied configuration is a merge snippet, not a replacement for an existing configuration. Running LibreChat images can differ in their supported settings; the repository's legislation README discusses the older `allowedDomains` option.
-
 ## Tools
 
 | Tool | Inputs | Result |
@@ -118,7 +97,7 @@ source connector → fetched content → source extractor → canonical document
                                                            ↓
                                             chunker → embedder → repository
                                                                      ↑
-LibreChat → MCP tools → retrieval application service ─────────────────┘
+Chat → MCP tools → retrieval application service ─────────────────┘
 ```
 
 `models.py` defines source-neutral dataclasses. `ports.py` defines the connector, extractor, chunker, embedder, and repository protocols. `pipeline.py` contains the ingestion use case; `retrieval.py` contains search/read use cases. Neither imports a source client, SQL driver, or MCP SDK. `registry.py` resolves source adapters. `server.py` and `cli.py` are application entry points.
@@ -187,7 +166,7 @@ uv run knowledge ingest collections/your-collection.json
 uv run knowledge serve
 ```
 
-Replace `your-collection.json` with your chosen manifest. The default local database URL uses port 5433 from Compose. Local Python uses `http://localhost:11434/v1` for embeddings; Docker uses `http://host.docker.internal:11434/v1`. Use the same configured embedding endpoint for ingestion and serving because the endpoint is part of the signature. Local serving defaults to port 8080; set `PORT=8091` to use the supplied LibreChat configuration. `.env` is read by Compose; for local Python export environment variables explicitly.
+Replace `your-collection.json` with your chosen manifest. The default local database URL uses port 5433 from Compose. Local Python uses `http://localhost:11434/v1` for embeddings; Docker uses `http://host.docker.internal:11434/v1`. Use the same configured embedding endpoint for ingestion and serving because the endpoint is part of the signature. Local serving defaults to port 8080. `.env` is read by Compose; for local Python export environment variables explicitly.
 
 ```sh
 uv run ruff check src tests
@@ -212,8 +191,8 @@ Database checks create and remove an isolated schema and install the vector exte
 
 ## Current scope and validation
 
-The test suite covers exhaustive pagination, inventory instability, readable HTML, attachment isolation, PDF/OCR behaviour and guarded retirement. Opt-in PostgreSQL tests cover collection lock serialization, atomic retirement/audit rollback, source scoping, other collection preservation and historical reads. Real PDF and OCR smoke tests require the PDF dependencies and Tesseract; PostgreSQL tests require `KNOWLEDGE_TEST_DATABASE_URL`. The suite has passed after regenerating the dependency lockfile with uv. Full live DBT ingestion and LibreChat connectivity remain separate end-to-end checks. The image uses a separate build stage and includes local Tesseract in its runtime stage; build tools, duplicate source trees, tests, and connector documentation are excluded from the runtime image.
+The test suite covers exhaustive pagination, inventory instability, readable HTML, attachment isolation, PDF/OCR behaviour and guarded retirement. Opt-in PostgreSQL tests cover collection lock serialization, atomic retirement/audit rollback, source scoping, other collection preservation and historical reads. Real PDF and OCR smoke tests require the PDF dependencies and Tesseract; PostgreSQL tests require `KNOWLEDGE_TEST_DATABASE_URL`. The suite has passed after regenerating the dependency lockfile with uv. Full live DBT ingestion and Chat connectivity remain separate end-to-end checks. The image uses a separate build stage and includes local Tesseract in its runtime stage; build tools, duplicate source trees, tests, and connector documentation are excluded from the runtime image.
 
 The service currently has no application authentication or document ACLs. Connector-specific scope and limitations are documented alongside each adapter. Automatic refresh, office-file extraction, ANN indexes, and an OpenSearch adapter are deferred. GOV.UK organisation ingestion includes opt-in membership reconciliation. The initial schema is version 1; future schema changes should be introduced as explicit migrations. Python dependencies update when the lockfile is refreshed; the Postgres image tag permits patch updates. Both local development and Docker installation use `uv.lock`; Docker builds fail if it disagrees with `pyproject.toml`.
 
-Official references: [pgvector](https://github.com/pgvector/pgvector), [MCP Python SDK v1](https://github.com/modelcontextprotocol/python-sdk/tree/v1.x), [Ollama compatible API](https://docs.ollama.com/api/openai-compatibility), [LibreChat MCP configuration](https://www.librechat.ai/docs/configuration/librechat_yaml/object_structure/mcp_servers).
+Official references: [pgvector](https://github.com/pgvector/pgvector), [MCP Python SDK v1](https://github.com/modelcontextprotocol/python-sdk/tree/v1.x), [Ollama compatible API](https://docs.ollama.com/api/openai-compatibility).
