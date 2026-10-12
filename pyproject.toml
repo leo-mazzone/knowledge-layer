@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling>=1.26,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "govchat-knowledge"
+version = "0.1.0"
+description = "Versioned shared document knowledge service for LibreChat"
+requires-python = ">=3.13"
+dependencies = [
+  "httpx>=0.28,<0.29",
+  "psycopg[binary]>=3.2,<4",
+  "mcp>=1.28,<2",
+  "uvicorn>=0.35,<1",
+  "pypdfium2>=5.7,<6",
+  "Pillow>=12,<13",
+]
+
+[project.scripts]
+knowledge = "knowledge.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/knowledge"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.4,<10", "pytest-asyncio>=1.2,<2", "ruff>=0.12,<1"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+extend-select = ["N802", "N803", "N806"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "tests"]
+asyncio_mode = "strict"

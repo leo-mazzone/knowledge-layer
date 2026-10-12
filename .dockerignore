@@ -1,0 +1,10 @@
+# Send only the files used by the image build.
+*
+!Dockerfile
+!pyproject.toml
+!uv.lock
+!src/
+!src/**
+**/__pycache__/
+**/*.pyc
+src/**/*.md

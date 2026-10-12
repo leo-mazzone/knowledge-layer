@@ -1,0 +1,1 @@
+"""Shared document knowledge layer."""

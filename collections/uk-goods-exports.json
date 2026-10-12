@@ -1,0 +1,21 @@
+{
+  "collection": "uk-goods-exports",
+  "connector": "govuk",
+  "config": {
+    "search": {
+      "query": "exporting goods",
+      "max_results": 20,
+      "page_size": 10,
+      "filters": {
+        "filter_content_store_document_type": ["detailed_guide", "guide", "guidance", "manual_section"]
+      }
+    },
+    "urls": [
+      "https://www.gov.uk/export-goods",
+      "https://www.gov.uk/eori",
+      "https://www.gov.uk/guidance/making-a-full-export-declaration",
+      "https://www.gov.uk/guidance/vat-exports-dispatches-and-supplying-goods-abroad",
+      "https://www.gov.uk/guidance/vat-on-goods-exported-from-the-uk-notice-703"
+    ]
+  }
+}

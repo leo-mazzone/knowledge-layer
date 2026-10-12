@@ -1,0 +1,75 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: knowledge
+      POSTGRES_USER: knowledge
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-knowledge}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - knowledge-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U knowledge -d knowledge"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  init-db:
+    image: govchat-knowledge:local
+    build: .
+    command: ["knowledge", "init-db"]
+    environment: &knowledge-env
+      DATABASE_URL: postgresql://knowledge:${POSTGRES_PASSWORD:-knowledge}@postgres:5432/knowledge
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-http://host.docker.internal:11434/v1}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-768}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
+      EMBEDDING_PROFILE: ${EMBEDDING_PROFILE:-nomic}
+      # Pass through only when defined, preserving unset versus explicitly empty.
+      EMBEDDING_DOCUMENT_PREFIX:
+      EMBEDDING_QUERY_PREFIX:
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  knowledge:
+    image: govchat-knowledge:local
+    build: .
+    environment: *knowledge-env
+    ports:
+      - "127.0.0.1:8091:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      init-db:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  ingest:
+    image: govchat-knowledge:local
+    build: .
+    profiles: [ingest]
+    command: ["knowledge", "ingest", "/collections/uk-goods-exports.json"]
+    environment: *knowledge-env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./collections:/collections:ro
+    depends_on:
+      init-db:
+        condition: service_completed_successfully
+
+volumes:
+  knowledge-db:

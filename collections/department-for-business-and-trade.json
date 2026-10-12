@@ -1,0 +1,16 @@
+{
+  "collection": "department-for-business-and-trade",
+  "connector": "govuk",
+  "config": {
+    "organisations": ["department-for-business-and-trade"],
+    "attachments": ["html", "pdf"],
+    "http": {
+      "min_interval": 0.1,
+      "max_retries": 4,
+      "initial_backoff": 2.0,
+      "max_backoff": 60.0,
+      "max_retry_after": 300.0
+    },
+    "reconcile": true
+  }
+}
